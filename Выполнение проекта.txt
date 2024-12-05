@@ -1,0 +1,165 @@
+Подготовка к выполнению задания
+1. Клонируйте репозиторий django_sprint1 на свой компьютер, в рабочую папку Dev. 
+   Репозиторий должен был появиться в вашем аккаунте на GitHub сразу после того, как вы открыли этот урок.
+	git clone git@github.com:yandex-praktikum/django_sprint1.git
+
+2. Разверните и активируйте виртуальное окружение в папке Dev/django_sprint1,
+   установите в виртуальное окружение зависимости из requirements.txt.
+	pip install -r requirements.txt 
+
+3. Создайте новый Django-проект blogicum*
+	django-admin startproject blogicum
+
+Задание
+1. Создайте и зарегистрируйте приложения:
+	Создание:
+	python manage.py startapp pages
+	python manage.py startapp blog
+
+	Регистрация:
+	INSTALLED_APPS = [    
+    	'pages.apps.PagesConfig', # Добавляем эту строчку
+    	'blog.apps.BlogConfig',  # Добавляем эту строчку
+    	'django.contrib.admin',
+    	'django.contrib.auth',
+    	'django.contrib.contenttypes',
+    	'django.contrib.sessions',
+    	'django.contrib.messages',
+    	'django.contrib.staticfiles',    
+	]
+
+	Строчка blog.apps.BlogConfig ссылается на класс BlogConfig файла apps.py в папке blog;
+	адрес указывается через точечную нотацию: директория.файл.класс:
+	from django.apps import AppConfig
+
+	class BlogConfig(AppConfig):
+    		default_auto_field = 'django.db.models.BigAutoField'
+    		name = 'blog'
+
+2. Опишите маршруты и напишите соответствующие view-функции согласно таблице:
+	Создал файл touch urls.py в папке blog
+	Создал файл touch urls.py в папке pages
+
+	По ссылке узнал как указать маршруты: "https://docs.djangoproject.com/en/3.2/topics/http/urls/#url-namespaces-and-included-urlconfs"
+
+	Для blog
+	app_name = 'blog'
+
+	urlpatterns = [
+    	path('', views.index, name='index'),
+    	path('posts/<int:id>/', views.post_detail, name='post_detail'),
+    	path('category/<slug:category_slug>/', views.category_posts, name='category_posts'),
+	]
+
+	Для pages
+	app_name = 'pages'
+
+	urlpatterns = [
+    	path('about/', views.about, name='about'),
+    	path('rules/', views.rules, name='rules'),
+	]
+	В главном файле проекта blogicum/urls.py указал пути
+	from django.urls import path, include
+
+	urlpatterns = [
+    	path('', include('blog.urls')),
+    	path('pages/', include('pages.urls')),
+	]
+
+	В файле views.py папки blog добавил функции
+	def index(request):
+    	context = {'posts': reversed(posts)}
+    	return render(request, 'blog/index.html', context)
+
+	def post_detail(request, id):
+   		for post in posts:
+        	if post['id'] == id:
+            	context = {'post': post}
+            	return render(request, 'blog/detail.html', context)
+    	return HttpResponseNotFound("Пост не найден")
+
+	def category_posts(request, category_slug):
+    	context = {'category_slug': category_slug}
+    	return render(request, 'blog/category.html', context)
+
+	В файле views.py папки pages добавил функции
+	# Create your views here.
+	def about(request):
+		template_name = 'pages/about.html'
+    	return render(request, template_name)
+
+	def rules(request):
+    	template_name = 'pages/rules.html'
+    	return render(request, template_name)
+
+3. Создайте шаблоны страниц и разместите их на уровне проекта.
+	По пройденному материалу создал шаблоны
+
+	{% extends "base.html" %}
+	% block title %}
+  	Анфиса для друзей. Список мороженого
+	{% endblock %}
+	{% block content %}
+  	<h1>Каталог мороженого</h1>
+  	<ul>
+    	{% for ice_cream in ice_cream_list %}
+      	<li>
+        	<h3>{{ ice_cream.title }}</h3>
+        	<p>{{ ice_cream.description|truncatewords:10 }}</p>
+        	<a href="{% url 'ice_cream:ice_cream_detail' ice_cream.id %}">Подробнее</a>
+      	</li>
+      	{% if not forloop.last %}
+        	<hr>
+      		{% endif %}
+    	{% endfor %}
+  		</ul>
+	{% endblock %}
+
+4. Подключите статику.
+	# Дополнительные директории, где собраны статические файлы проекта.
+	STATICFILES_DIRS = [
+    	BASE_DIR / 'static_dev',
+	]
+	Статика в шаблонах
+	{% load static %}
+
+5. Выведите список публикаций из словаря posts на главную страницу проекта так, как это показано на примере свёрстанной страницы index.html. 
+	Сами публикации должны выводиться целиком на отдельных страницах, как это показано в detail.html.
+	{% extends "base.html" %}
+	{% load static %}
+	{% block title %}
+  	Лента записей
+	{% endblock %}
+	{% block content %}
+	<h1>Лента записей</h1>                        
+        	<!-- Перебираем в цикле все посты -->
+        	{% for post in posts %}
+        	<hr>
+        	<article>
+          	<ul>
+            	<li>
+              	Место: {{ post.location }}              
+            	</li>
+            	<li>
+              	Дата: {{ post.date }}
+            	</li>
+            	<li>
+              	Категория: <a href="{% url 'blog:category_posts' post.category %}">{{ post.category }}</a>
+            	</li>
+          	</ul>          
+          	<!-- Первые 10 слов -->
+          	<p>
+            	{{ post.text|truncatewords:10 }}
+          	</p>
+          	<a href="{% url 'blog:post_detail' post.id %}">Читать полный текст</a>
+        	</article>
+        	{% endfor %}                                 
+	{% endblock %}
+
+Проверка
+	запускаем сервер
+	python manage.py runserver
+	выдает ошибку пишем
+	python manage.py migrate
+	запускаем тесты
+	pytest
